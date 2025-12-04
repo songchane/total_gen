@@ -1,0 +1,7 @@
+# 환경 변수 파일 (민감 정보)
+.env
+
+# Chroma Vector DB 저장 폴더
+data/chroma_store/
+
+data/seoul_tradar_full.csv

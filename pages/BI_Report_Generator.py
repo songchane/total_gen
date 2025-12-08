@@ -1,5 +1,5 @@
 import streamlit as st
-from book_writer import run_analysis
+from trend import run_analysis
 
 # PDF 생성 라이브러리
 from reportlab.lib.pagesizes import letter

@@ -39,10 +39,8 @@ def interpret_change(val):
 # CSV 불러오기
 @st.cache_data
 def load_csv():
-    # 🔥 파일 경로 대신 URL에서 직접 로드
-    df = pd.read_csv(CSV_URL, dtype=str)
+    df = pd.read_csv(CSV_URL, dtype=str, encoding="utf-8-sig")
 
-    # 숫자 타입 처리
     num_cols = [c for c in df.columns if c.endswith("_AMT")]
     for col in num_cols:
         df[col] = pd.to_numeric(df[col], errors="ignore")
@@ -51,6 +49,7 @@ def load_csv():
     df["year"] = df["STDR_YYQU_CD"].str[:4]
     df["quarter"] = df["STDR_YYQU_CD"].str[-1]
     return df
+
 
 
 df_all = load_csv()

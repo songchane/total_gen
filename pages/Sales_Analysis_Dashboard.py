@@ -6,8 +6,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 st.set_page_config(layout="wide")
 
-# 🔥 Google Drive에서 CSV 불러오기
-CSV_URL = "https://drive.google.com/uc?export=download&id=1UPjkq-LQmBAVF7ZqatGu8qyJiTmwbkO9"
+CSV_FILE = "data/seoul_tradar_full.csv"
 
 
 # 숫자 포매팅 함수
@@ -39,17 +38,14 @@ def interpret_change(val):
 # CSV 불러오기
 @st.cache_data
 def load_csv():
-    df = pd.read_csv(CSV_URL, dtype=str, encoding="utf-8-sig")
-
+    df = pd.read_csv(CSV_FILE, dtype=str)
     num_cols = [c for c in df.columns if c.endswith("_AMT")]
     for col in num_cols:
         df[col] = pd.to_numeric(df[col], errors="ignore")
-
     df["STDR_YYQU_CD"] = df["STDR_YYQU_CD"].astype(str)
     df["year"] = df["STDR_YYQU_CD"].str[:4]
     df["quarter"] = df["STDR_YYQU_CD"].str[-1]
     return df
-
 
 
 df_all = load_csv()
@@ -71,9 +67,7 @@ def generate_insight(top_df):
     )
 
 
-# ================================================
-# 📌 1. 매출 TOP10 탭
-# ================================================
+# 탭 구성
 tab1, tab2, tab3, tab4 = st.tabs([
     "📌 매출 TOP10",
     "📊 성별·연령대·시간대 분석",
@@ -81,9 +75,10 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🧩 기준 비교"
 ])
 
-# -------------------------------------------
-# 1번 탭
-# -------------------------------------------
+
+# ================================================
+# 📌 1. 매출 TOP10 탭
+# ================================================
 with tab1:
     st.subheader("매출 TOP 10 분석")
 
@@ -99,7 +94,7 @@ with tab1:
     trdar_sel = col1.selectbox("상권 선택", ["(전체)"] + sorted(df_sel["TRDAR_SE_CD_NM"].dropna().unique()))
     svc_sel = col2.selectbox("업종 선택", ["(전체)"] + sorted(df_sel["SVC_INDUTY_CD_NM"].dropna().unique()))
 
-    # 상권 선택
+    # 상권 선택 시
     if trdar_sel != "(전체)":
         st.markdown(f"### 🔸 <{trdar_sel}>의 매출 TOP10")
 
@@ -121,7 +116,7 @@ with tab1:
         fig.update_traces(textposition="outside")
         b.plotly_chart(fig, use_container_width=True)
 
-    # 업종 선택
+    # 업종 선택 시
     if svc_sel != "(전체)":
         st.markdown(f"### 🔸 <{svc_sel}> 업종의 상권별 매출")
 
@@ -144,7 +139,7 @@ with tab1:
 
 
 # ================================================
-# 📊 2. 성별·연령대·시간대 분석 탭
+# 📌 2. 성별·연령대·시간대 분석 탭
 # ================================================
 with tab2:
 
@@ -159,9 +154,10 @@ with tab2:
     agg = df_area.select_dtypes(include=["number"]).sum()
 
     # -----------------------------
-    # 성별 / 연령대
+    # ✔ 성별 + 연령대 수평 배치
     # -----------------------------
     st.markdown("### 🔸 성별 및 연령대 매출 비교")
+
     col_g, col_a = st.columns(2)
 
     # 성별 그래프
@@ -181,6 +177,8 @@ with tab2:
             text="표시"
         )
         fig_g.update_traces(textposition="outside")
+        fig_g.update_xaxes(title="매출(원)")
+        fig_g.update_yaxes(title="성별")
         st.plotly_chart(fig_g, use_container_width=True)
 
     # 연령대 그래프
@@ -201,11 +199,15 @@ with tab2:
         )
         age_df["표시"] = age_df["매출"].apply(format_won)
 
-        fig_a = px.pie(age_df, names="연령대", values="매출")
+        fig_a = px.pie(
+            age_df,
+            names="연령대",
+            values="매출"
+        )
         st.plotly_chart(fig_a, use_container_width=True)
 
     # -----------------------------
-    # 시간대 매출
+    # ✔ 시간대 매출
     # -----------------------------
     st.markdown("### 🔸 시간대별 매출 그래프")
 
@@ -223,14 +225,22 @@ with tab2:
     )
     time_df["표시"] = time_df["매출"].apply(format_won)
 
-    fig = px.bar(time_df, x="매출", y="시간대", orientation="h", text="표시")
+    fig = px.bar(
+        time_df,
+        x="매출",
+        y="시간대",
+        orientation="h",
+        text="표시",
+        title="시간대별 매출"
+    )
     fig.update_traces(textposition="outside")
-    fig.update_yaxes(autorange="reversed")
+    fig.update_yaxes(autorange="reversed", title="시간대")
+    fig.update_xaxes(title="매출(원)")
     st.plotly_chart(fig, use_container_width=True)
 
 
 # ================================================
-# 📈 3. 추이 예측 탭
+# 📌 3. 추이 예측 탭
 # ================================================
 with tab3:
     st.subheader("상권·업종별 미래 매출 예측")
@@ -238,9 +248,7 @@ with tab3:
     t3_trdar = st.selectbox("상권 선택", sorted(df_all["TRDAR_SE_CD_NM"].unique()), key="t3_trdar")
     t3_svc = st.selectbox("업종 선택", sorted(df_all[df_all["TRDAR_SE_CD_NM"] == t3_trdar]["SVC_INDUTY_CD_NM"].unique()), key="t3_svc")
 
-    df_reg = df_all[(df_all["TRDAR_SE_CD_NM"] == t3_trdar) &
-                    (df_all["SVC_INDUTY_CD_NM"] == t3_svc)]
-
+    df_reg = df_all[(df_all["TRDAR_SE_CD_NM"] == t3_trdar) & (df_all["SVC_INDUTY_CD_NM"] == t3_svc)]
     ts = df_reg.groupby("STDR_YYQU_CD")["THSMON_SELNG_AMT"].sum().reset_index()
     ts["STDR_YYQU_CD"] = ts["STDR_YYQU_CD"].astype(str)
     ts = ts.sort_values("STDR_YYQU_CD")
@@ -293,14 +301,16 @@ with tab3:
     ts_full = pd.concat([ts, future_df])
 
     fig = px.line(ts_full, x="분기", y="THSMON_SELNG_AMT", markers=True, color="구분")
-    fig.update_xaxes(type="category")
+    fig.update_xaxes(type='category', title="분기")
+    fig.update_yaxes(title="매출(원)")
     st.plotly_chart(fig, use_container_width=True)
 
 
 # ================================================
-# 🧩 4. 기준 비교 탭
+# 📌 4. 기준 비교 탭
 # ================================================
 with tab4:
+
     st.header("🧩 기준 비교 분석")
 
     if "compare_list" not in st.session_state:
@@ -364,17 +374,21 @@ with tab4:
 
         with colA:
             st.subheader(f"📌 {comboA}")
-            fig = px.bar(grpA, x="THSMON_SELNG_AMT", y="SVC_INDUTY_CD_NM",
-                         text="표시", orientation="h")
-            fig.update_yaxes(autorange="reversed")
+            fig = px.bar(grpA, x="THSMON_SELNG_AMT", y="SVC_INDUTY_CD_NM", text="표시",
+                         orientation="h")
+            fig.update_xaxes(title="매출(원)")
+            fig.update_yaxes(title="업종명", autorange="reversed")
+            fig.update_traces(textposition="outside")
             st.plotly_chart(fig)
             st.markdown(generate_insight(grpA).replace("\n", "<br>"), unsafe_allow_html=True)
 
         with colB:
             st.subheader(f"📌 {comboB}")
-            fig = px.bar(grpB, x="THSMON_SELNG_AMT", y="SVC_INDUTY_CD_NM",
-                         text="표시", orientation="h")
-            fig.update_yaxes(autorange="reversed")
+            fig = px.bar(grpB, x="THSMON_SELNG_AMT", y="SVC_INDUTY_CD_NM", text="표시",
+                         orientation="h")
+            fig.update_xaxes(title="매출(원)")
+            fig.update_yaxes(title="업종명", autorange="reversed")
+            fig.update_traces(textposition="outside")
             st.plotly_chart(fig)
             st.markdown(generate_insight(grpB).replace("\n", "<br>"), unsafe_allow_html=True)
 
@@ -388,17 +402,19 @@ with tab4:
         merged["해석"] = merged["변동률(%)"].apply(interpret_change)
 
         st.subheader("📈 변동률 및 해석")
-        st.dataframe(merged[["SVC_INDUTY_CD_NM", "변동률(%)", "해석"]], use_container_width=True)
+
+        styled_df = merged[["SVC_INDUTY_CD_NM", "변동률(%)", "해석"]]
+        st.dataframe(styled_df, use_container_width=True)
 
         fig = px.bar(merged, x="변동률(%)", y="SVC_INDUTY_CD_NM",
                      orientation="h", text="해석")
-        fig.update_yaxes(autorange="reversed")
+        fig.update_xaxes(title="변동률(%)")
+        fig.update_yaxes(title="업종명", autorange="reversed")
         st.plotly_chart(fig)
 
-    # 3개 이상 비교
+    # 3개 이상 기준 비교
     else:
         st.subheader("📌 다중 기준 비교 (3개 이상)")
-
         cols = st.columns(len(st.session_state.compare_list))
 
         for i, combo in enumerate(st.session_state.compare_list):
@@ -413,11 +429,14 @@ with tab4:
                 st.subheader(combo)
                 fig = px.bar(grp, x="THSMON_SELNG_AMT", y="SVC_INDUTY_CD_NM",
                              orientation="h", text="표시")
-                fig.update_yaxes(autorange="reversed")
+                fig.update_xaxes(title="매출(원)")
+                fig.update_yaxes(title="업종명", autorange="reversed")
+                fig.update_traces(textposition="outside")
                 st.plotly_chart(fig)
 
                 insight_html = generate_insight(grp).replace("\n", "<br>")
-                st.markdown(
-                    f"<div style='background-color:#e8f3ff; padding:15px; border-radius:10px;'>{insight_html}</div>",
-                    unsafe_allow_html=True
-                )
+                st.markdown(f"""
+                <div style="background-color:#e8f3ff; padding:15px; border-radius:10px;">
+                {insight_html}
+                </div>
+                """, unsafe_allow_html=True)

@@ -132,7 +132,7 @@ total_gen/
 ---
 
 ## 👤 Author
-Ko Youngjin
+Ko Youngjin  
 Email: dseridk003@naver.com  
 GitHub: https://github.com/yjk101
 

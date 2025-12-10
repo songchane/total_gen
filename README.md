@@ -70,10 +70,6 @@ export OPENAI_API_KEY=your_api_key
 streamlit run overview.py
 
 ```
-5) 데이터 분석 시 사용되는 csv 파일 다운로드(용량이 커서 직접 다운로드)  
-data / [seoul_tradar_full.csv](https://data.seoul.go.kr/dataList/OA-15572/S/1/datasetView.do)
-
----
 
 ## ▶ Usage (사용 방법)
 
